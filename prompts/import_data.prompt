@@ -1,0 +1,11 @@
+I want to import data from foi_himalayan_flowers.csv file into Chroma DB.
+ - The code to read the CSV should go into import.py
+ - The CSV file contains some image url fields. The images should be fetched from
+the URLs and stored in an "img" directory within the project.
+
+All ChromaDB related code should go into a separate file as per engineering
+best practices.
+ - Use the OpenClib embedding generator for ChromaDB and data loaders to load the images
+ downloaded in "img" directory
+
+Include type hints in the generated code
