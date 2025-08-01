@@ -103,15 +103,15 @@ class FloraImporter:
         return document_text
 
     def _process_rows(self, rows, start):
-        for i, row in rows:
+        for i, row in enumerate(rows):
             flower, local_image_paths = self._process_row(row)
             document_text = self._join_text_fields(flower)
-            flower_id = uuid.uuid4()
+            flower_id = str(uuid.uuid4())
             metadata = vars(flower)
             metadata.update(local_image_paths)
             self._save_to_text_collection(flower_id, document_text, metadata)
             self._save_images(flower_id, local_image_paths)
-            print(f"Processed {start + i + 1}: {flower.botanical_name}")
+            print(f"Processed {start + i}: {flower.botanical_name}")
 
     def _save_to_text_collection(self, document_id, document, metadata):
         text_collection = FloraTextDAO(self.chromadb_client)
@@ -122,7 +122,7 @@ class FloraImporter:
 
         document_ids, uris, metadata_list = [], [], []
         for path in image_paths.values():
-            document_ids.append(uuid.uuid4())
+            document_ids.append(str(uuid.uuid4()))
             uris.append(path)
             metadata_list.append({"flora_id": flower_id})
         self._save_to_image_collection(document_ids, uris, metadata_list)

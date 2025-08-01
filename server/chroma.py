@@ -1,18 +1,19 @@
 from typing import List, Dict, Any, Optional
+
 import chromadb
 from chromadb import ClientAPI
-from chromadb.api import DataLoader
 from chromadb.config import Settings
+from chromadb.utils.data_loaders import ImageLoader
 from chromadb.utils.embedding_functions import OpenCLIPEmbeddingFunction
 
 _chromadb_client = None
 
 
-def client(persistent: bool = True) -> ClientAPI:
+def client(persistent: bool = True, path=None) -> ClientAPI:
     global _chromadb_client
     if _chromadb_client is None:
         if persistent:
-            _chromadb_client = chromadb.PersistentClient(settings=Settings())
+            _chromadb_client = chromadb.PersistentClient(settings=Settings(), path=path)
         else:
             _chromadb_client = chromadb.Client(settings=Settings())
     return _chromadb_client
@@ -24,7 +25,7 @@ class FloraBase:
         self.client = chromadb_client
         self.collection = self.client.get_or_create_collection(
             self.collection_name,
-            embeddding_function=OpenCLIPEmbeddingFunction(),
+            embedding_function=OpenCLIPEmbeddingFunction(),
             data_loader=data_loader
         )
 
@@ -60,7 +61,7 @@ class FloraTextDAO(FloraBase):
             where: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
         results = self.collection.query(
-            query_text=query_text,
+            query_texts=[query_text],
             n_results=n_results,
             where=where
         )
@@ -71,7 +72,7 @@ class FloraImageDAO(FloraBase):
     """Interacts with collection that stores Flower image urls and image embeddings"""
 
     def __init__(self, chromadb_client):
-        super().__init__("flora_img_collection", chromadb_client, DataLoader())
+        super().__init__("flora_img_collection", chromadb_client, ImageLoader())
 
     def add_document(
             self,
