@@ -1,6 +1,7 @@
 import csv
 import os
 import typing
+import uuid
 
 import requests
 import argparse
@@ -8,17 +9,24 @@ from typing import List, Dict, Any, Optional
 from urllib.parse import urlparse
 import hashlib
 from pathlib import Path
+
+from chromadb import ClientAPI
+
 from models import Flower
+from server import chroma
+from server.chroma import FloraTextDAO, FloraImageDAO
+from server.models import Flower
 
 
 class FloraImporter:
     """Import flora data from CSV, download associated images and save the data to ChromaDB."""
-    
-    def __init__(self, csv_file_path: str, img_directory: str = "img", download_images: bool = True):
+
+    def __init__(self, csv_file_path: str, chromadb_client: ClientAPI, img_directory: str = "img",
+                 download_images: bool = True):
         self.csv_file_path = csv_file_path
         self.img_directory = Path(img_directory)
         self.img_directory.mkdir(exist_ok=True)
-        self.chroma_handler = None
+        self.chromadb_client = chromadb_client
         self.download_images = download_images
 
 
@@ -38,13 +46,13 @@ class FloraImporter:
             return None
 
     @staticmethod
-    def _create_filename_from_name(name: str, image_num: int) -> str:
+    def _create_safe_filename(name: str, image_num: int) -> str:
         # Remove special characters and spaces, convert to lowercase
         safe_name = "".join(c for c in name if c.isalnum() or c in (' ', '-', '_')).rstrip()
         safe_name = safe_name.replace(' ', '_').lower()
         return f"{safe_name}_img{image_num}"
 
-    def _process_row(self, row: Dict[str, str]) -> tuple[Flower, List[str]]:
+    def _process_row(self, row: Dict[str, str]) -> tuple[Flower, dict[str, str]]:
         """Process a single CSV row and download images."""
 
         # Create Flower object from CSV row
@@ -63,54 +71,18 @@ class FloraImporter:
         image_paths = self._download_images(flower)
         return flower, image_paths
 
-    def _download_images(self, flower):
-        image_paths = []
+    def _download_images(self, flower) -> dict[str, str]:
+        image_paths = {}
         if self.download_images:
             for i, image_url in enumerate(
                     [flower.image1_url, flower.image2_url, flower.image3_url, flower.image4_url], 1
             ):
                 if image_url:
-                    filename = self. _create_filename_from_name(flower.common_name, i)
+                    filename = self. _create_safe_filename(flower.common_name, i)
                     downloaded_path = self._download_image(image_url, filename)
                     if downloaded_path:
-                        image_paths.append(downloaded_path)
+                        image_paths[f"image{i}_local_uri"] = downloaded_path
         return image_paths
-
-    def import_data(self, start: int = 0, end: Optional[int] = None) -> None:
-
-        print(f"Starting import from {self.csv_file_path}")
-        documents, document_ids, metadata_list = [], [], []
-
-        with open(self.csv_file_path, 'r', encoding='utf-8') as csvfile:
-            reader = csv.DictReader(csvfile)
-            rows = self._slice_rows(reader, start, end)
-
-            print(f"Processing rows {start} to {start + len(rows)} (total: {len(rows)} rows)")
-            for i, row in rows:
-                flower, image_paths = self._process_row(row)
-                document_text = f"{flower.botanical_name} {flower.common_name} {flower.description}"
-                # Create unique document ID
-                document_id = hashlib.md5((flower.botanical_name + flower.common_name).encode()).hexdigest()
-                metadata = vars(flower)
-                documents.append(document_text)
-                document_ids.append(document_id)
-                metadata_list.append(metadata)
-
-                print(f"Processed {start + i + 1}: {flower.botanical_name}")
-
-        self._save_to_db(document_ids, documents, metadata_list)
-        print(f"Import completed! {len(documents)} flora entries added to ChromaDB.")
-
-    def _save_to_db(self, document_ids, documents, metadata_list):
-        if self.chroma_handler is None:
-            print("ChromaDB not configured yet")
-            return
-        print(f"Adding {len(documents)} documents to ChromaDB...")
-        self.chroma_handler.add_documents_batch(
-            document_ids=document_ids,
-            texts=documents,
-            metadatas=metadata_list
-        )
 
     @staticmethod
     def _slice_rows(reader: typing.Iterable, start: int, end: int) -> list:
@@ -122,19 +94,72 @@ class FloraImporter:
             rows = rows[start:]
         return rows
 
+    @staticmethod
+    def _join_text_fields(flower):
+        document_text = f"Botanical name: {flower.botanical_name}" \
+                        f"Common name: {flower.common_name}" \
+                        f"Family: {flower.family}" \
+                        f"Description: {flower.description}"
+        return document_text
+
+    def _process_rows(self, rows, start):
+        for i, row in rows:
+            flower, local_image_paths = self._process_row(row)
+            document_text = self._join_text_fields(flower)
+            flower_id = uuid.uuid4()
+            metadata = vars(flower)
+            metadata.update(local_image_paths)
+            self._save_to_text_collection(flower_id, document_text, metadata)
+            self._save_images(flower_id, local_image_paths)
+            print(f"Processed {start + i + 1}: {flower.botanical_name}")
+
+    def _save_to_text_collection(self, document_id, document, metadata):
+        text_collection = FloraTextDAO(self.chromadb_client)
+        text_collection.add_document(document_id, document, metadata)
+
+    def _save_images(self, flower_id, image_paths: Dict[str, str]):
+        """Save all images paths for a flower in the DB"""
+
+        document_ids, uris, metadata_list = [], [], []
+        for path in image_paths.values():
+            document_ids.append(uuid.uuid4())
+            uris.append(path)
+            metadata_list.append({"flora_id": flower_id})
+        self._save_to_image_collection(document_ids, uris, metadata_list)
+
+    def _save_to_image_collection(self, document_ids, image_uris, metadata_list):
+        image_collection = FloraImageDAO(self.chromadb_client)
+        image_collection.add_documents_batch(
+            document_ids=document_ids,
+            uris=image_uris,
+            metadata_list=metadata_list
+        )
+
+    def import_data(self, start: int = 0, end: Optional[int] = None) -> int:
+        """ Reads the CSV file and processes each row into a flower and its images """
+
+        print(f"Starting import from {self.csv_file_path}")
+        with open(self.csv_file_path, 'r', encoding='utf-8') as csvfile:
+            reader = csv.DictReader(csvfile)
+            rows = self._slice_rows(reader, start, end)
+            self._process_rows(rows, start)
+            return len(rows)
+
 
 def main():
     parser = argparse.ArgumentParser(description='Imports flower data from a CSV file to ChromaDB')
-    parser.add_argument('csv_file', nargs='?', default='foi_himalayan_flowers.csv', help='Path to the CSV file (default: foi_himalayan_flowers.csv)')
+    parser.add_argument('csv_file', nargs='?', default='foi_himalayan_flowers.csv',
+                        help='Path to the CSV file (default: foi_himalayan_flowers.csv)')
     parser.add_argument('--start', type=int, default=0, help='Start row index (default: 0)')
     parser.add_argument('--end', type=int, help='End row index (optional)')
     parser.add_argument('--no-download', action='store_true', help='Skip downloading images')
     
     args = parser.parse_args()
 
-    importer = FloraImporter(args.csv_file, download_images=not args.no_download)
-    importer.import_data(start=args.start, end=args.end)
-
+    chromadb_client = chroma.client(persistent=True)
+    importer = FloraImporter(args.csv_file, chromadb_client, download_images=not args.no_download)
+    num_imported = importer.import_data(start=args.start, end=args.end)
+    print(f"Import complete! {num_imported} entries added to DB.")
 
 if __name__ == "__main__":
     main()
