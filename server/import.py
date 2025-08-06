@@ -1,18 +1,13 @@
+import argparse
 import csv
-import os
 import typing
 import uuid
+from pathlib import Path
+from typing import Dict, Optional
 
 import requests
-import argparse
-from typing import List, Dict, Any, Optional
-from urllib.parse import urlparse
-import hashlib
-from pathlib import Path
-
 from chromadb import ClientAPI
 
-from models import Flower
 from server import chroma
 from server.chroma import FloraTextDAO, FloraImageDAO
 from server.models import Flower
@@ -35,11 +30,13 @@ class FloraImporter:
             return None
 
         try:
-            response = requests.get(url, timeout=30)
-            response.raise_for_status()
             file_path = self.img_directory / f"{filename}{'.jpg'}"
-            with open(file_path, 'wb') as f:
-                f.write(response.content)
+            if not Path(file_path).is_file():
+                print(f"Downloading image with URL: {url}")
+                response = requests.get(url, timeout=30)
+                response.raise_for_status()
+                with open(file_path, 'wb') as f:
+                    f.write(response.content)
             return str(file_path)
         except Exception as e:
             print(f"Failed to download image from {url}: {e}")
@@ -73,15 +70,14 @@ class FloraImporter:
 
     def _download_images(self, flower) -> dict[str, str]:
         image_paths = {}
-        if self.download_images:
-            for i, image_url in enumerate(
-                    [flower.image1_url, flower.image2_url, flower.image3_url, flower.image4_url], 1
-            ):
-                if image_url:
-                    filename = self. _create_safe_filename(flower.common_name, i)
-                    downloaded_path = self._download_image(image_url, filename)
-                    if downloaded_path:
-                        image_paths[f"image{i}_local_uri"] = downloaded_path
+        for i, image_url in enumerate(
+                [flower.image1_url, flower.image2_url, flower.image3_url, flower.image4_url], 1
+        ):
+            if image_url:
+                filename = self. _create_safe_filename(flower.common_name, i)
+                downloaded_path = self._download_image(image_url, filename)
+                if downloaded_path:
+                    image_paths[f"image{i}_local_uri"] = downloaded_path
         return image_paths
 
     @staticmethod
@@ -96,9 +92,9 @@ class FloraImporter:
 
     @staticmethod
     def _join_text_fields(flower):
-        document_text = f"Botanical name: {flower.botanical_name}" \
-                        f"Common name: {flower.common_name}" \
-                        f"Family: {flower.family}" \
+        document_text = f"Botanical name: {flower.botanical_name} " \
+                        f"Common name: {flower.common_name} " \
+                        f"Family: {flower.family} " \
                         f"Description: {flower.description}"
         return document_text
 
@@ -111,7 +107,7 @@ class FloraImporter:
             metadata.update(local_image_paths)
             self._save_to_text_collection(flower_id, document_text, metadata)
             self._save_images(flower_id, local_image_paths)
-            print(f"Processed {start + i}: {flower.botanical_name}")
+            print(f"Processed {start + i}: {flower.common_name}")
 
     def _save_to_text_collection(self, document_id, document, metadata):
         text_collection = FloraTextDAO(self.chromadb_client)
@@ -152,7 +148,8 @@ def main():
                         help='Path to the CSV file (default: foi_himalayan_flowers.csv)')
     parser.add_argument('--start', type=int, default=0, help='Start row index (default: 0)')
     parser.add_argument('--end', type=int, help='End row index (optional)')
-    parser.add_argument('--no-download', action='store_true', help='Skip downloading images')
+    parser.add_argument('--no-download', action='store_true',
+                        help='Skip downloading images that already exist locally')
     
     args = parser.parse_args()
 
