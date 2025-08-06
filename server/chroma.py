@@ -9,7 +9,7 @@ from chromadb.utils.embedding_functions import OpenCLIPEmbeddingFunction
 _chromadb_client = None
 
 
-def client(persistent: bool = True, path=None) -> ClientAPI:
+def client(persistent: bool = True, path="chroma") -> ClientAPI:
     global _chromadb_client
     if _chromadb_client is None:
         if persistent:
@@ -35,12 +35,42 @@ class FloraBase:
     def get_collection_count(self) -> int:
         return self.collection.count()
 
+    def query(
+            self,
+            query_text: str,
+            n_results: int = 5,
+            where: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        results = self.collection.query(
+            query_texts=[query_text],
+            n_results=n_results,
+            where=where,
+        )
+        return results
+
+    def get(
+            self,
+            ids: list = None,
+            limit: int = 10,
+            offset: int = 0,
+            where: Optional[Dict[str, Any]] = None,
+            where_document: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        results = self.collection.get(
+            ids=ids,
+            limit=limit,
+            offset=offset,
+            where=where,
+            where_document=where_document,
+        )
+        return results
+
 
 class FloraTextDAO(FloraBase):
     """Class to interact with collection that stores Flower text and text embeddings"""
 
     def __init__(self, chromadb_client):
-        super().__init__("flora_collection", chromadb_client)
+        super().__init__("flora_text", chromadb_client)
 
     def add_document(
             self,
@@ -54,25 +84,12 @@ class FloraTextDAO(FloraBase):
             metadatas=[metadata]
         )
 
-    def query(
-            self,
-            query_text: str,
-            n_results: int = 5,
-            where: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
-        results = self.collection.query(
-            query_texts=[query_text],
-            n_results=n_results,
-            where=where
-        )
-        return results
-
 
 class FloraImageDAO(FloraBase):
     """Interacts with collection that stores Flower image urls and image embeddings"""
 
     def __init__(self, chromadb_client):
-        super().__init__("flora_img_collection", chromadb_client, ImageLoader())
+        super().__init__("flora_images", chromadb_client, ImageLoader())
 
     def add_document(
             self,
@@ -100,17 +117,3 @@ class FloraImageDAO(FloraBase):
             uris=uris,
             metadatas=metadata_list
         )
-
-    def query(
-            self,
-            query_text: str,
-            n_results: int = 5,
-            where: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
-
-        results = self.collection.query(
-            query_text=query_text,
-            n_results=n_results,
-            where=where
-        )
-        return results
