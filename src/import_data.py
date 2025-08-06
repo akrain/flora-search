@@ -74,7 +74,7 @@ class FloraImporter:
                 [flower.image1_url, flower.image2_url, flower.image3_url, flower.image4_url], 1
         ):
             if image_url:
-                filename = self. _create_safe_filename(flower.common_name, i)
+                filename = self._create_safe_filename(flower.common_name, i)
                 downloaded_path = self._download_image(image_url, filename)
                 if downloaded_path:
                     image_paths[f"image{i}_local_uri"] = downloaded_path
@@ -153,7 +153,7 @@ def main():
     
     args = parser.parse_args()
 
-    chromadb_client = chroma.client(persistent=True)
+    chromadb_client = chroma.client(persistent=True, path="server/chroma")
     importer = FloraImporter(args.csv_file, chromadb_client, download_images=not args.no_download)
     num_imported = importer.import_data(start=args.start, end=args.end)
     print(f"Import complete! {num_imported} entries added to DB.")
