@@ -24,7 +24,6 @@ class FloraImporter:
         self.chromadb_client = chromadb_client
         self.download_images = download_images
 
-
     def _download_image(self, url: str, filename: str) -> Optional[str]:
         if not url or url.strip() == "":
             return None
@@ -150,13 +149,14 @@ def main():
     parser.add_argument('--end', type=int, help='End row index (optional)')
     parser.add_argument('--no-download', action='store_true',
                         help='Skip downloading images that already exist locally')
-    
+
     args = parser.parse_args()
 
     chromadb_client = chroma.client(persistent=True, path="server/chroma")
     importer = FloraImporter(args.csv_file, chromadb_client, download_images=not args.no_download)
     num_imported = importer.import_data(start=args.start, end=args.end)
     print(f"Import complete! {num_imported} entries added to DB.")
+
 
 if __name__ == "__main__":
     main()

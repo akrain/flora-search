@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 
+
 @dataclass
 class Flower:
     botanical_name: str
