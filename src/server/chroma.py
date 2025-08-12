@@ -121,6 +121,19 @@ class FloraImageDAO(FloraBase):
             metadatas=metadata_list
         )
 
+    def query(
+            self,
+            query_img: list,
+            n_results: int = 5,
+            where: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        results = self.collection.query(
+            query_images=[query_img],
+            n_results=n_results,
+            where=where,
+        )
+        return results
+
 
 class FloraTextOnlyDAO(FloraBase):
     """Class to interact with collection that stores Flower text and text embeddings"""
