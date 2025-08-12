@@ -1,10 +1,10 @@
 from typing import List, Dict, Any, Optional
 
 import chromadb
-from chromadb import ClientAPI
+from chromadb import ClientAPI, EmbeddingFunction
 from chromadb.config import Settings
 from chromadb.utils.data_loaders import ImageLoader
-from chromadb.utils.embedding_functions import OpenCLIPEmbeddingFunction
+from chromadb.utils.embedding_functions import OpenCLIPEmbeddingFunction, DefaultEmbeddingFunction
 
 _chromadb_client = None
 
@@ -20,12 +20,14 @@ def client(persistent: bool = True, path="chroma") -> ClientAPI:
 
 
 class FloraBase:
-    def __init__(self, collection_name, chromadb_client, data_loader=None):
+    def __init__(self, collection_name, chromadb_client,
+                 embedding_function: EmbeddingFunction,
+                 data_loader=None):
         self.collection_name = collection_name
         self.client = chromadb_client
         self.collection = self.client.get_or_create_collection(
             self.collection_name,
-            embedding_function=OpenCLIPEmbeddingFunction(),
+            embedding_function=embedding_function,
             data_loader=data_loader
         )
 
@@ -70,7 +72,7 @@ class FloraTextDAO(FloraBase):
     """Class to interact with collection that stores Flower text and text embeddings"""
 
     def __init__(self, chromadb_client):
-        super().__init__("flora_text", chromadb_client)
+        super().__init__("flora_text", chromadb_client, embedding_function=OpenCLIPEmbeddingFunction())
 
     def add_document(
             self,
@@ -89,7 +91,8 @@ class FloraImageDAO(FloraBase):
     """Interacts with collection that stores Flower image urls and image embeddings"""
 
     def __init__(self, chromadb_client):
-        super().__init__("flora_images", chromadb_client, ImageLoader())
+        super().__init__("flora_images", chromadb_client, embedding_function=OpenCLIPEmbeddingFunction(),
+                         data_loader=ImageLoader())
 
     def add_document(
             self,
@@ -116,4 +119,23 @@ class FloraImageDAO(FloraBase):
             ids=document_ids,
             uris=uris,
             metadatas=metadata_list
+        )
+
+
+class FloraTextOnlyDAO(FloraBase):
+    """Class to interact with collection that stores Flower text and text embeddings"""
+
+    def __init__(self, chromadb_client):
+        super().__init__("flora_text_only", chromadb_client, embedding_function=DefaultEmbeddingFunction())
+
+    def add_document(
+            self,
+            document_id: str,
+            document: str,
+            metadata: Dict[str, Any]
+    ) -> None:
+        self.collection.add(
+            ids=[document_id],
+            documents=[document],
+            metadatas=[metadata]
         )
