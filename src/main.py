@@ -1,4 +1,3 @@
-import io
 from typing import Optional
 
 import uvicorn
@@ -31,10 +30,14 @@ def search_flowers(
         q_img: Optional[UploadFile] = file_default,
 ):
     validate_search_params(q, q_img)
+    results = {}
     if q_img:
-        file_content = q_img.file.read()
-        file_bytes = io.BytesIO(file_content)
-    results = app.search_service.search(q, file_bytes)
+        try:
+            results = app.search_service.search(q, q_img.file)
+            return {"q": q, "q_img": q_img.filename if q_img else None, "results": results}
+        except Exception as e:
+            print(e)
+    # results = app.search_service.search(q, q_img.file)
     return {"q": q, "q_img": q_img.filename if q_img else None, "results": results}
 
 

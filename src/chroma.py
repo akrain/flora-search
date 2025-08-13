@@ -131,6 +131,7 @@ class FloraImageDAO(FloraBase):
             query_images=[query_img],
             n_results=n_results,
             where=where,
+            include=["metadatas", "uris"]
         )
         return results
 
