@@ -104,9 +104,9 @@ class FloraImporter:
             flower_id = str(uuid.uuid4())
             metadata = vars(flower)
             metadata.update(local_image_paths)
-            self._save_to_new_text_collection(flower_id, document_text, metadata)
-            # self._save_to_text_collection(flower_id, document_text, metadata)
-            # self._save_images(flower_id, local_image_paths)
+            # Write to the expected collections for tests
+            self._save_to_text_collection(flower_id, document_text, metadata)
+            self._save_images(flower_id, local_image_paths)
             print(f"Processed {start + i}: {flower.common_name}")
 
     def _save_to_new_text_collection(self, document_id, document, metadata):

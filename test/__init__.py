@@ -1,4 +1,4 @@
-import sys
-
-sys.path.append('../src')
-sys.path.append('../scripts')
+# import sys
+#
+# sys.path.append('../src')
+# sys.path.append('../scripts')
