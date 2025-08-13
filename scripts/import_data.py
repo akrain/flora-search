@@ -1,5 +1,6 @@
 import argparse
 import csv
+import sys
 import typing
 import uuid
 from pathlib import Path
@@ -7,6 +8,9 @@ from typing import Dict, Optional
 
 import requests
 from chromadb import ClientAPI
+
+src_path = Path(__file__).parent.parent / "src"
+sys.path.append(str(src_path))
 
 import chroma
 from chroma import FloraTextDAO, FloraImageDAO

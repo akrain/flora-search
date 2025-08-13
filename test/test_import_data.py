@@ -9,8 +9,8 @@ class TestFloraImporter:
 
     def setup_method(self):
         self.mock_chromadb_client = MagicMock()
-        self.csv_file_path = "/test/path/flowers.csv"
-        self.img_directory = "test_img"
+        self.csv_file_path = "test/path/flowers.csv"
+        self.img_directory = "test/img"
 
     @patch("import_data.Path")
     def test_init_creates_image_directory(self, mock_path_class):
