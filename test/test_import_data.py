@@ -1,7 +1,7 @@
 from unittest.mock import MagicMock, mock_open, patch
 
-from import_data import FloraImporter
-from server.models import Flower
+from models import Flower
+from scripts.import_data import FloraImporter
 
 
 class TestFloraImporter:

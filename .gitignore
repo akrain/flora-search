@@ -1,7 +1,8 @@
 # Custom
 **/chroma
 **/img
-**/foi_himalayan_flowers.csv
+**/test_img
+scripts/foi_himalayan_flowers.csv
 
 # OS and IDE files
 .DS_Store

@@ -8,9 +8,9 @@ from typing import Dict, Optional
 import requests
 from chromadb import ClientAPI
 
-from server import chroma
-from server.chroma import FloraTextDAO, FloraImageDAO
-from server.models import Flower
+import chroma
+from chroma import FloraTextDAO, FloraImageDAO
+from models import Flower
 
 
 class FloraImporter:
@@ -110,7 +110,7 @@ class FloraImporter:
             print(f"Processed {start + i}: {flower.common_name}")
 
     def _save_to_new_text_collection(self, document_id, document, metadata):
-        from server.chroma import FloraTextOnlyDAO
+        from chroma import FloraTextOnlyDAO
         text_collection = FloraTextOnlyDAO(self.chromadb_client)
         text_collection.add_document(document_id, document, metadata)
 
@@ -158,7 +158,7 @@ def main():
 
     args = parser.parse_args()
 
-    chromadb_client = chroma.client(persistent=True, path="server/chroma")
+    chromadb_client = chroma.client(persistent=True, path="../src/chroma")
     importer = FloraImporter(args.csv_file, chromadb_client, download_images=not args.no_download)
     num_imported = importer.import_data(start=args.start, end=args.end)
     print(f"Import complete! {num_imported} entries added to DB.")
