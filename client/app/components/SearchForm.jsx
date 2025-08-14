@@ -1,6 +1,7 @@
-function SearchForm({ onSearch, loading }) {
+function SearchForm({ onSearch, loading, onClear }) {
   const [text, setText] = React.useState("");
   const [file, setFile] = React.useState(null);
+  const [localError, setLocalError] = React.useState(null);
   const fileInputRef = React.useRef(null);
   const barRef = React.useRef(null);
 
@@ -12,11 +13,7 @@ function SearchForm({ onSearch, loading }) {
     const onDrop = (e) => {
       e.preventDefault(); bar.classList.remove('dragover');
       const f = e.dataTransfer.files && e.dataTransfer.files[0];
-      if (f) {
-        setFile(f);
-        // auto submit on drop
-        onSearch({ text, file: f });
-      }
+      if (f) handleFileSelection(f);
     };
     bar.addEventListener('dragover', onDragOver);
     bar.addEventListener('dragleave', onDragLeave);
@@ -37,15 +34,33 @@ function SearchForm({ onSearch, loading }) {
 
   const onSelectFile = (evt) => {
     const f = evt.target.files && evt.target.files[0];
-    if (f) {
-      setFile(f);
-      onSearch({ text, file: f });
-    }
+    if (f) handleFileSelection(f);
   };
 
   const clearFile = () => {
     setFile(null);
+    setText("");
     if (fileInputRef.current) fileInputRef.current.value = "";
+    setLocalError(null);
+    if (typeof onClear === 'function') onClear();
+  };
+
+  const handleFileSelection = (f) => {
+    const MAX_SIZE = 2 * 1024 * 1024; // 4 MB
+    const allowedTypes = ["image/jpeg", "image/png"]; 
+    const name = (f.name || "").toLowerCase();
+    const typeOk = allowedTypes.includes(f.type) || name.endsWith(".jpg") || name.endsWith(".jpeg") || name.endsWith(".png");
+    const sizeOk = typeof f.size === 'number' ? f.size <= MAX_SIZE : true;
+
+    if (!typeOk || !sizeOk) {
+      const reason = !typeOk ? "Only JPEG and PNG images are allowed." : "Image must be 4MB or smaller.";
+      setLocalError(reason);
+      return;
+    }
+
+    setLocalError(null);
+    setFile(f);
+    onSearch({ text, file: f });
   };
 
   return (
@@ -78,13 +93,15 @@ function SearchForm({ onSearch, loading }) {
           </div>
           <input
             type="file"
-            accept="image/*"
+            accept="image/jpeg,image/png"
             className="d-none"
             ref={fileInputRef}
             onChange={onSelectFile}
           />
         </div>
-        {/* Filename is now shown in the input; no separate display */}
+        {localError && (
+          <div className="text-danger small mt-2" role="alert">{localError}</div>
+        )}
       </div>
     </div>
   );
