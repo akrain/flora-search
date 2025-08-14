@@ -1,0 +1,8 @@
+I need a simple react app to show result from the search API. Detailed requirements below
+- It should a search text box and an image upload facility for searching. 
+- Results should be shown as thumbnail and common name only.
+- Clicking on an image should open the full description of the flower
+- It should work with mobile and desktop both
+- You can use bootsrap or some other simple css framework for the grid
+- Keep the app simple as it is for personal use only
+- Ask for more information if needed
