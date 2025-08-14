@@ -53,16 +53,23 @@ def search_flowers(
     return {"q": q, "q_img": q_img.filename if q_img else None, "items": items}
 
 
-# Legacy normalization removed; API now returns list of Flower dataclasses as dicts
+def validate_file_properties(q_img: UploadFile):
+    # Enforce 2MB max upload size for images
+    if q_img is not None and q_img.file is not None:
+        if q_img.size > 2 * 1024 * 1024:
+            raise HTTPException(status_code=413, detail="Image must be 2MB or smaller")
+        if q_img.content_type in ("image/jpeg", "image/png"):
+            raise HTTPException(status_code=415, detail="Image must be a JPEG or PNG file")
 
 
-def validate_search_params(q, q_img):
+def validate_search_params(q: str, q_img: UploadFile):
     # Check if at least one parameter is provided and valid
     if not q and not q_img:
         raise HTTPException(
             status_code=400,
             detail="Either 'q' (text query) or 'q_img' (image file) must be provided",
         )
+    validate_file_properties(q_img)
 
 
 if __name__ == "__main__":

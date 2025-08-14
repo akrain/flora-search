@@ -46,14 +46,14 @@ function SearchForm({ onSearch, loading, onClear }) {
   };
 
   const handleFileSelection = (f) => {
-    const MAX_SIZE = 2 * 1024 * 1024; // 4 MB
+    const MAX_SIZE = 2 * 1024 * 1024;
     const allowedTypes = ["image/jpeg", "image/png"]; 
     const name = (f.name || "").toLowerCase();
     const typeOk = allowedTypes.includes(f.type) || name.endsWith(".jpg") || name.endsWith(".jpeg") || name.endsWith(".png");
     const sizeOk = typeof f.size === 'number' ? f.size <= MAX_SIZE : true;
 
     if (!typeOk || !sizeOk) {
-      const reason = !typeOk ? "Only JPEG and PNG images are allowed." : "Image must be 4MB or smaller.";
+      const reason = !typeOk ? "Only JPEG and PNG images are allowed." : "Image must be 2MB or smaller.";
       setLocalError(reason);
       return;
     }

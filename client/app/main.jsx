@@ -51,6 +51,7 @@ function App() {
       URL.revokeObjectURL(queryImageUrl);
     }
     setQueryImageUrl(null);
+    setError(null);
   };
 
   return (
