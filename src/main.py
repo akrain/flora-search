@@ -54,7 +54,6 @@ def search_flowers(
 
 
 def validate_file_properties(q_img: UploadFile):
-    # Enforce 2MB max upload size for images
     if q_img is not None and q_img.file is not None:
         if q_img.size > 4 * 1024 * 1024:
             raise HTTPException(status_code=413, detail="Image must be 4 MB or smaller")
