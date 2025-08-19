@@ -52,5 +52,11 @@ class SearchService:
             flower_matches = self.text_dao.get(ordered_ids, len(ordered_ids))
             return process_results(flower_matches["metadatas"], flower_matches["ids"], ordered_ids)
         else:
+
+            # WIP: Activate and make this code switchable based on parameter
+            # image_matches = FloraBase.query(self.image_dao, query_text, n, where)
+            # ordered_ids = unique_ids(image_matches)
+            # flower_matches = self.text_dao.get(ordered_ids, len(ordered_ids))
+            # return process_results(flower_matches["metadatas"], flower_matches["ids"], ordered_ids)
             text_matches = self.text_dao.query(query_text, n, where)
             return process_results(text_matches["metadatas"][0], text_matches["ids"][0], text_matches["ids"][0])
