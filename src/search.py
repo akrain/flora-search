@@ -1,9 +1,8 @@
 import inspect
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional, List, BinaryIO
 
 import numpy
 from PIL import Image
-from anyio import AsyncFile
 
 from chroma import FloraImageDAO, FloraTextDAO
 from models import Flower
@@ -39,7 +38,7 @@ class SearchService:
     def search(
             self,
             query_text: Optional[str],
-            query_img_file: AsyncFile,
+            query_img_file: BinaryIO,
             n: int = 20,
             where: Optional[Dict[str, Any]] = None,
     ) -> List[Flower]:

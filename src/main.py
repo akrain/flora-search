@@ -1,4 +1,3 @@
-from dataclasses import asdict
 from typing import Optional
 
 import uvicorn
@@ -31,11 +30,6 @@ def read_root():
     return {"Hello": "World", "And": "we are on..."}
 
 
-@app.get("/flowers/{id}")
-def get_flower(id: int):
-    return {"flower_id": id}
-
-
 @app.post("/flowers/search/")
 def search_flowers(
         q: Optional[str] = form_default,
@@ -48,9 +42,7 @@ def search_flowers(
         print(e)
         raise HTTPException(status_code=500, detail="Search failed")
 
-    # Return dataclass payloads as plain dicts
-    items = [asdict(f) for f in results]
-    return {"q": q, "q_img": q_img.filename if q_img else None, "items": items}
+    return results
 
 
 def validate_file_properties(q_img: UploadFile):
