@@ -1,3 +1,4 @@
+from dataclasses import asdict
 from typing import Optional
 
 import uvicorn
@@ -6,6 +7,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 import chroma
 from search import SearchService
+
+MAX_IMG_SIZE = 4 * 1024 * 1024
 
 app = FastAPI()
 
@@ -30,6 +33,11 @@ def read_root():
     return {"Hello": "World", "And": "we are on..."}
 
 
+@app.get("/flowers/{id}")
+def get_flower(id: int):
+    return {"flower_id": id}
+
+
 @app.post("/flowers/search/")
 def search_flowers(
         q: Optional[str] = form_default,
@@ -41,14 +49,19 @@ def search_flowers(
     except Exception as e:
         print(e)
         raise HTTPException(status_code=500, detail="Search failed")
+    finally:
+        q_img.file.close() if q_img else None
 
-    return results
+    # Return dataclass payloads as plain dicts
+    items = [asdict(f) for f in results]
+    return {"q": q, "q_img": q_img.filename if q_img else None, "items": items}
 
 
 def validate_file_properties(q_img: UploadFile):
+    # Enforce 2MB max upload size for images
     if q_img is not None and q_img.file is not None:
-        if q_img.size > 4 * 1024 * 1024:
-            raise HTTPException(status_code=413, detail="Image must be 4 MB or smaller")
+        if q_img.size > MAX_IMG_SIZE:
+            raise HTTPException(status_code=413, detail="Image must be 4MB or smaller")
         if q_img.content_type not in ("image/jpeg", "image/png"):
             print(q_img.content_type)
             raise HTTPException(status_code=415, detail="Image must be a JPEG or PNG file")
