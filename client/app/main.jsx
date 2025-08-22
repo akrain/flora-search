@@ -70,7 +70,12 @@ function App() {
           </div>
         </div>
       )}
-      {error && <div className="alert alert-danger py-2">{error}</div>}
+
+      {error && (
+        <div class="mb-3 d-flex justify-content-center">
+          <div className="alert alert-danger py-2">{error}</div>
+        </div>
+      )}
       <div className="row">
         {items.map((item) => (
           <ResultCard key={(item.common_name || '') + (item.botanical_name || '')} item={item} onClick={openDetail} />

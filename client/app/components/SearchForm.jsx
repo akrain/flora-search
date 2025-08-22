@@ -81,7 +81,7 @@ function SearchForm({ onSearch, loading, onClear }) {
             title={file ? file.name : undefined}
             aria-disabled={!!file}
           />
-          <div className="trailing-actions">
+          <div className="mb-3 trailing-actions">
             {file && (
               <button type="button" className="icon-btn" aria-label="Clear image" title="Clear image" onClick={clearFile}>
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
@@ -100,7 +100,9 @@ function SearchForm({ onSearch, loading, onClear }) {
           />
         </div>
         {localError && (
-          <div className="text-danger small mt-2" role="alert">{localError}</div>
+          <div class="mb-3 d-flex justify-content-center">
+            <div className="alert alert-danger py-2">{localError}</div>
+          </div>
         )}
       </div>
     </div>
